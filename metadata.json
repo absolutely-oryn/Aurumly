@@ -1,0 +1,5 @@
+{
+  "name": "Aurumly",
+  "description": "A premium gold-themed educational platform for students (Grade 8–12) to study, create quizzes, and compete on leaderboards.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
