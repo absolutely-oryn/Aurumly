@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { auth, db, doc, onSnapshot, updateDoc, setDoc, handleFirestoreError, OperationType } from '../firebase';
+import { auth, db, doc, onSnapshot, updateDoc, setDoc, deleteDoc, handleFirestoreError, OperationType, collection, getDocs, query, where } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { User, Mail, GraduationCap, Star, Zap, Trophy, Shield, Edit2, Save, X } from 'lucide-react';
+import { User, Mail, GraduationCap, Star, Zap, Trophy, Shield, Edit2, Save, X, Check, Ban } from 'lucide-react';
 import { UserProfile, Grade } from '../types';
 import { GRADES } from '../constants';
 
@@ -14,6 +14,7 @@ const Profile = () => {
   const [editedGrade, setEditedGrade] = useState<Grade>('Grade 8');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pendingTeachers, setPendingTeachers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -30,30 +31,70 @@ const Profile = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (profile?.role === 'admin' || user?.email === 'alemsegedy@gmail.com') {
+      const q = query(collection(db, 'users'), where('role', '==', 'teacher'), where('status', '==', 'pending'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const teachers = snapshot.docs.map(doc => doc.data() as UserProfile);
+        setPendingTeachers(teachers);
+      });
+      return () => unsubscribe();
+    }
+  }, [profile, user]);
+
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     setSaving(true);
     try {
-      const path = `users/${user.uid}`;
-      try {
-        await updateDoc(doc(db, 'users', user.uid), {
-          displayName: editedDisplayName,
-          grade: editedGrade,
+      const oldGrade = profile.grade;
+      const newGrade = editedGrade;
+      const newName = editedDisplayName;
+
+      // Update User Profile
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: newName,
+        grade: newGrade,
+      });
+
+      // Update Leaderboard Entry
+      if (oldGrade !== newGrade) {
+        // Delete old entry
+        await deleteDoc(doc(db, 'leaderboards', oldGrade, 'entries', user.uid));
+        // Create new entry
+        await setDoc(doc(db, 'leaderboards', newGrade, 'entries', user.uid), {
+          uid: user.uid,
+          displayName: newName,
+          score: profile.totalPoints || 0,
+          grade: newGrade
         });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, path);
+      } else if (profile.displayName !== newName) {
+        // Update existing entry
+        await updateDoc(doc(db, 'leaderboards', oldGrade, 'entries', user.uid), {
+          displayName: newName
+        });
       }
+
       setIsEditing(false);
     } catch (err: any) {
       console.error('Error updating profile:', err);
-      // You could also set an error state here to show in the UI
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user?.uid}`);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleTeacherAction = async (teacherUid: string, action: 'approved' | 'rejected') => {
+    try {
+      await updateDoc(doc(db, 'users', teacherUid), {
+        status: action
+      });
+    } catch (err) {
+      console.error('Error updating teacher status:', err);
+    }
+  };
+
   const handleSeedData = async () => {
-    if (!user || profile?.role !== 'admin' && user.email !== 'alemsegedy@gmail.com') return;
+    if (!user || (profile?.role !== 'admin' && user.email !== 'alemsegedy@gmail.com')) return;
     setSaving(true);
     try {
       const quizzes = [
@@ -201,13 +242,22 @@ const Profile = () => {
                     <span className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
                       <Shield size={14} className="text-[#D4AF37]" /> {profile?.role || 'Student'}
                     </span>
+                    {profile?.role === 'teacher' && (
+                      <span className={`flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border ${
+                        profile.status === 'approved' ? 'border-green-500/50 text-green-400' : 
+                        profile.status === 'pending' ? 'border-yellow-500/50 text-yellow-400' : 
+                        'border-red-500/50 text-red-400'
+                      }`}>
+                        Status: {profile.status}
+                      </span>
+                    )}
                   </div>
                 </>
               )}
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
               {[
                 { label: 'Total Points', value: profile?.totalPoints || 0, icon: <Star size={24} className="text-[#D4AF37]" /> },
                 { label: 'Quizzes Done', value: profile?.completedQuizzes.length || 0, icon: <Zap size={24} className="text-blue-400" /> },
@@ -222,6 +272,41 @@ const Profile = () => {
                 </div>
               ))}
             </div>
+
+            {/* Admin Panel: Teacher Approval */}
+            {(profile?.role === 'admin' || user?.email === 'alemsegedy@gmail.com') && pendingTeachers.length > 0 && (
+              <div className="mt-12">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <Shield className="text-[#D4AF37]" /> Pending Teacher Approvals
+                </h3>
+                <div className="space-y-4">
+                  {pendingTeachers.map((teacher) => (
+                    <div key={teacher.uid} className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-lg">{teacher.displayName}</div>
+                        <div className="text-sm text-gray-400">{teacher.email}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleTeacherAction(teacher.uid, 'approved')}
+                          className="p-2 bg-green-500/20 text-green-500 rounded-xl hover:bg-green-500/30 transition-all"
+                          title="Approve"
+                        >
+                          <Check size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleTeacherAction(teacher.uid, 'rejected')}
+                          className="p-2 bg-red-500/20 text-red-500 rounded-xl hover:bg-red-500/30 transition-all"
+                          title="Reject"
+                        >
+                          <Ban size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

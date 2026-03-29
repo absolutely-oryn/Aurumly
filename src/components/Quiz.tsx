@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, collection, getDocs, query, where, doc, updateDoc, increment, arrayUnion, setDoc, handleFirestoreError, OperationType } from '../firebase';
+import { auth, db, collection, getDocs, query, where, doc, updateDoc, increment, arrayUnion, setDoc, handleFirestoreError, OperationType, onSnapshot } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { HelpCircle, CheckCircle, XCircle, ArrowRight, Trophy, Clock, Zap, Star } from 'lucide-react';
-import { Quiz as QuizType, Question } from '../types';
+import { HelpCircle, CheckCircle, XCircle, ArrowRight, Trophy, Clock, Zap, Star, Lock } from 'lucide-react';
+import { Quiz as QuizType, Question, UserProfile } from '../types';
 
 const Quiz = () => {
   const [user] = useAuthState(auth);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [quizzes, setQuizzes] = useState<QuizType[]>([]);
   const [currentQuiz, setCurrentQuiz] = useState<QuizType | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -17,9 +18,23 @@ const Quiz = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (user) {
+      const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+        if (doc.exists()) {
+          setProfile(doc.data() as UserProfile);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  useEffect(() => {
     const fetchQuizzes = async () => {
+      if (!profile) return;
+      setLoading(true);
       try {
-        const q = query(collection(db, 'quizzes'));
+        // Filter by grade
+        const q = query(collection(db, 'quizzes'), where('grade', '==', profile.grade));
         const querySnapshot = await getDocs(q);
         const fetchedQuizzes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizType));
         setQuizzes(fetchedQuizzes);
@@ -29,8 +44,10 @@ const Quiz = () => {
         setLoading(false);
       }
     };
-    fetchQuizzes();
-  }, []);
+    if (profile) {
+      fetchQuizzes();
+    }
+  }, [profile]);
 
   const handleStartQuiz = (quiz: QuizType) => {
     setCurrentQuiz(quiz);

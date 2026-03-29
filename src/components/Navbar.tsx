@@ -1,15 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, LogOut, User, Trophy, BookOpen, LayoutDashboard, HelpCircle, BrainCircuit, Users } from 'lucide-react';
-import { auth, signOut } from '../firebase';
+import { Menu, X, LogOut, User, Trophy, BookOpen, LayoutDashboard, HelpCircle, BrainCircuit, Users, Plus } from 'lucide-react';
+import { auth, signOut, db, doc, onSnapshot } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { UserProfile } from '../types';
 
 const Navbar = () => {
   const [user] = useAuthState(auth);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+        if (doc.exists()) {
+          setProfile(doc.data() as UserProfile);
+        }
+      });
+      return () => unsubscribe();
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,12 +39,29 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} />, protected: true },
     { name: 'AI Tutor', path: '/ai-tutor', icon: <BrainCircuit size={18} />, protected: true },
     { name: 'Groups', path: '/groups', icon: <Users size={18} />, protected: true },
+    { 
+      name: 'Build Quiz', 
+      path: '/create-quiz', 
+      icon: <Plus size={18} />, 
+      protected: true, 
+      role: ['teacher', 'admin'],
+      requireApproval: true
+    },
     { name: 'Quiz', path: '/quiz', icon: <HelpCircle size={18} />, protected: true },
     { name: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={18} />, protected: true },
     { name: 'Profile', path: '/profile', icon: <User size={18} />, protected: true },
   ];
 
-  const filteredLinks = navLinks.filter(link => !link.protected || user);
+  const filteredLinks = navLinks.filter(link => {
+    if (link.protected && !user) return false;
+    if (link.role && profile) {
+      if (!link.role.includes(profile.role)) return false;
+      if (link.requireApproval && profile.role === 'teacher' && profile.status !== 'approved') return false;
+    } else if (link.role && !profile) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <nav

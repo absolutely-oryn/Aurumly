@@ -80,13 +80,44 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">
-            WELCOME BACK, <span className="text-[#D4AF37] uppercase">{profile?.displayName.split(' ')[0]}</span>
-          </h1>
+          <div className="flex items-center gap-4 mb-4">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter">
+              WELCOME BACK, <span className="text-[#D4AF37] uppercase">{profile?.displayName.split(' ')[0]}</span>
+            </h1>
+            {profile?.role === 'admin' && (
+              <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-blue-600/20">
+                Administrator
+              </span>
+            )}
+          </div>
           <p className="text-gray-400 font-light">
-            You are currently studying for <span className="text-white font-semibold">{profile?.grade}</span>. Ready to score better today?
+            {profile?.role === 'teacher' 
+              ? `You are logged in as a ${profile.grade} Teacher. Ready to inspire your students?`
+              : `You are currently studying for ${profile?.grade}. Ready to score better today?`
+            }
           </p>
         </motion.div>
+
+        {/* Pending Approval Banner for Teachers */}
+        {profile?.role === 'teacher' && profile.status === 'pending' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-12 p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-3xl flex items-center gap-6 backdrop-blur-xl"
+          >
+            <div className="w-14 h-14 bg-yellow-500/20 rounded-2xl flex items-center justify-center shrink-0">
+              <Clock className="text-yellow-500" size={28} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-yellow-500 uppercase tracking-tight mb-1">Account Pending Approval</h3>
+              <p className="text-sm text-gray-400 max-w-2xl">
+                Your teacher account is currently being reviewed by our administrators. 
+                Once approved, you'll be able to build quizzes and manage study materials. 
+                Contact <span className="text-white font-bold underline">Alemsegdy@gmail.com</span> for faster verification.
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">

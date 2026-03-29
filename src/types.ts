@@ -10,7 +10,8 @@ export interface UserProfile {
   streak: number;
   lastActive: any;
   badges: string[];
-  role?: 'admin' | 'user';
+  role: 'admin' | 'teacher' | 'student';
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface StudyGroup {
@@ -26,6 +27,18 @@ export interface StudyGroup {
 export interface Message {
   id: string;
   text: string;
+  senderId: string;
+  senderName: string;
+  createdAt: any;
+}
+
+export interface Material {
+  id: string;
+  title: string;
+  description: string;
+  url?: string;
+  content?: string;
+  type: 'link' | 'note' | 'file';
   senderId: string;
   senderName: string;
   createdAt: any;

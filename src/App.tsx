@@ -15,6 +15,7 @@ import Study from './components/Study';
 import Membership from './components/Membership';
 import AITutor from './components/AITutor';
 import StudyGroups from './components/StudyGroups';
+import CreateQuiz from './components/CreateQuiz';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Route Component
@@ -102,6 +103,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StudyGroups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-quiz"
+              element={
+                <ProtectedRoute>
+                  <CreateQuiz />
                 </ProtectedRoute>
               }
             />

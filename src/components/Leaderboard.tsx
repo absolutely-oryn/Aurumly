@@ -56,57 +56,69 @@ const Leaderboard = () => {
 
         {/* Top 3 Podium */}
         {!loading && entries.length >= 3 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 items-end max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 items-end max-w-5xl mx-auto relative px-4">
+            {/* Decorative background glow */}
+            <div className="absolute inset-0 bg-[#D4AF37]/5 blur-[120px] rounded-full -z-10" />
+
             {/* 2nd Place */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="order-2 md:order-1 flex flex-col items-center"
+              transition={{ delay: 0.2, type: 'spring', stiffness: 100 }}
+              className="order-2 md:order-1 flex flex-col items-center group"
             >
-              <div className="w-20 h-20 bg-gray-400/20 rounded-full flex items-center justify-center mb-4 border-2 border-gray-400/50 relative">
-                <Medal size={32} className="text-gray-400" />
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-gray-400 text-black rounded-full flex items-center justify-center font-bold text-sm">2</div>
+              <div className="relative mb-6">
+                <div className="w-24 h-24 bg-slate-400/10 rounded-[32px] flex items-center justify-center border-2 border-slate-400/30 group-hover:border-slate-400 transition-all duration-500 rotate-12 group-hover:rotate-0">
+                  <Medal size={40} className="text-slate-400 -rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+                </div>
+                <div className="absolute -top-3 -right-3 w-10 h-10 bg-slate-400 text-black rounded-2xl flex items-center justify-center font-black text-lg shadow-lg rotate-12">2</div>
               </div>
-              <div className="text-center p-6 bg-white/5 border border-white/10 rounded-3xl w-full h-40 flex flex-col justify-center">
-                <div className="font-bold text-lg mb-1 truncate">{entries[1].displayName}</div>
-                <div className="text-[#D4AF37] font-black text-2xl">{entries[1].score}</div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-widest">Points</div>
+              <div className="text-center p-8 bg-white/5 border border-white/10 rounded-[40px] w-full h-48 flex flex-col justify-center backdrop-blur-xl group-hover:bg-white/10 transition-all duration-500">
+                <div className="font-black text-xl mb-2 truncate text-slate-300 uppercase tracking-tighter">{entries[1].displayName}</div>
+                <div className="text-slate-400 font-black text-3xl mb-1">{entries[1].score}</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em]">POINTS</div>
               </div>
             </motion.div>
 
             {/* 1st Place */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="order-1 md:order-2 flex flex-col items-center"
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 100 }}
+              className="order-1 md:order-2 flex flex-col items-center group z-10"
             >
-              <div className="w-28 h-28 bg-[#D4AF37]/20 rounded-full flex items-center justify-center mb-6 border-4 border-[#D4AF37] relative animate-pulse">
-                <Trophy size={48} className="text-[#D4AF37]" />
-                <div className="absolute -top-3 -right-3 w-10 h-10 bg-[#D4AF37] text-black rounded-full flex items-center justify-center font-bold text-lg">1</div>
+              <div className="relative mb-8">
+                <div className="absolute inset-0 bg-[#D4AF37]/20 blur-2xl rounded-full animate-pulse" />
+                <div className="w-32 h-32 bg-[#D4AF37]/10 rounded-[40px] flex items-center justify-center border-4 border-[#D4AF37] relative group-hover:scale-110 transition-transform duration-500">
+                  <Trophy size={56} className="text-[#D4AF37] drop-shadow-[0_0_15px_rgba(212,175,55,0.5)]" />
+                </div>
+                <div className="absolute -top-4 -right-4 w-12 h-12 bg-[#D4AF37] text-black rounded-2xl flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-bounce">1</div>
               </div>
-              <div className="text-center p-8 bg-gradient-to-b from-[#D4AF37]/20 to-white/5 border border-[#D4AF37]/30 rounded-3xl w-full h-52 flex flex-col justify-center shadow-[0_0_30px_rgba(212,175,55,0.1)]">
-                <div className="font-black text-2xl mb-1 truncate">{entries[0].displayName}</div>
-                <div className="text-[#D4AF37] font-black text-4xl">{entries[0].score}</div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-widest">Points</div>
+              <div className="text-center p-10 bg-gradient-to-b from-[#D4AF37]/20 to-white/5 border-2 border-[#D4AF37]/40 rounded-[50px] w-full h-64 flex flex-col justify-center shadow-[0_0_50px_rgba(212,175,55,0.15)] backdrop-blur-2xl group-hover:border-[#D4AF37] transition-all duration-500">
+                <div className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.5em] mb-4">GRAND MASTER</div>
+                <div className="font-black text-3xl mb-2 truncate uppercase tracking-tighter">{entries[0].displayName}</div>
+                <div className="text-[#D4AF37] font-black text-5xl mb-2 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]">{entries[0].score}</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em]">POINTS</div>
               </div>
             </motion.div>
 
             {/* 3rd Place */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="order-3 flex flex-col items-center"
+              transition={{ delay: 0.4, type: 'spring', stiffness: 100 }}
+              className="order-3 flex flex-col items-center group"
             >
-              <div className="w-16 h-16 bg-orange-900/20 rounded-full flex items-center justify-center mb-4 border-2 border-orange-900/50 relative">
-                <Medal size={28} className="text-orange-900" />
-                <div className="absolute -top-2 -right-2 w-7 h-7 bg-orange-900 text-white rounded-full flex items-center justify-center font-bold text-xs">3</div>
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-amber-800/10 rounded-[28px] flex items-center justify-center border-2 border-amber-800/30 group-hover:border-amber-800 transition-all duration-500 -rotate-12 group-hover:rotate-0">
+                  <Medal size={36} className="text-amber-800 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+                </div>
+                <div className="absolute -top-3 -right-3 w-9 h-9 bg-amber-800 text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg -rotate-12">3</div>
               </div>
-              <div className="text-center p-6 bg-white/5 border border-white/10 rounded-3xl w-full h-36 flex flex-col justify-center">
-                <div className="font-bold text-lg mb-1 truncate">{entries[2].displayName}</div>
-                <div className="text-[#D4AF37] font-black text-xl">{entries[2].score}</div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-widest">Points</div>
+              <div className="text-center p-8 bg-white/5 border border-white/10 rounded-[40px] w-full h-44 flex flex-col justify-center backdrop-blur-xl group-hover:bg-white/10 transition-all duration-500">
+                <div className="font-black text-lg mb-2 truncate text-amber-700 uppercase tracking-tighter">{entries[2].displayName}</div>
+                <div className="text-amber-800 font-black text-2xl mb-1">{entries[2].score}</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em]">POINTS</div>
               </div>
             </motion.div>
           </div>

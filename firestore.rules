@@ -51,8 +51,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin' ||
-          (request.auth.token.email == "alemsegedy@gmail.com" && request.auth.token.email_verified == true));
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'admin' ||
+          (request.auth.token.email.lower() == "alemsegedy@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isApprovedTeacher() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'teacher' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('status', 'pending') == 'approved';
     }
 
     function isValidEmail(email) {
@@ -72,12 +78,13 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['uid', 'displayName', 'email', 'grade', 'totalPoints', 'completedQuizzes', 'role', 'streak', 'lastActive', 'badges']) &&
+      return hasOnlyAllowedFields(['uid', 'displayName', 'email', 'grade', 'totalPoints', 'completedQuizzes', 'role', 'status', 'streak', 'lastActive', 'badges']) &&
              data.uid == request.auth.uid &&
              data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
              isValidEmail(data.email) &&
              isValidGrade(data.grade) &&
-             (!('role' in data) || data.role is string) &&
+             data.role in ['admin', 'teacher', 'student'] &&
+             (!('status' in data) || data.status in ['pending', 'approved', 'rejected']) &&
              (!('totalPoints' in data) || data.totalPoints is int) &&
              (!('completedQuizzes' in data) || data.completedQuizzes is list) &&
              (!('streak' in data) || data.streak is int) &&
@@ -107,14 +114,20 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.get('role', 'user') == 'user' || isAdmin());
-      allow update: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.get('role', 'user') == resource.data.get('role', 'user') || isAdmin());
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == 'student' || 
+                       (request.resource.data.role == 'teacher' && request.resource.data.status == 'pending') || 
+                       isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == resource.data.role) && 
+                      (request.resource.data.get('status', 'pending') == resource.data.get('status', 'pending')) || 
+                      isAdmin();
     }
 
     match /quizzes/{quizId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidQuiz(request.resource.data);
+      allow create: if (isApprovedTeacher() || isAdmin()) && isValidQuiz(request.resource.data);
       allow update, delete: if (isAuthenticated() && resource.data.createdBy == request.auth.uid && isValidQuiz(request.resource.data)) || isAdmin();
     }
 
@@ -140,6 +153,12 @@ service cloud.firestore {
     match /studyGroups/{groupId}/messages/{messageId} {
       allow read: if isAuthenticated() && (get(/databases/$(database)/documents/studyGroups/$(groupId)).data.members.hasAny([request.auth.uid]) || isAdmin());
       allow create: if isAuthenticated() && (get(/databases/$(database)/documents/studyGroups/$(groupId)).data.members.hasAny([request.auth.uid])) && request.resource.data.senderId == request.auth.uid;
+    }
+
+    match /studyGroups/{groupId}/materials/{materialId} {
+      allow read: if isAuthenticated() && (get(/databases/$(database)/documents/studyGroups/$(groupId)).data.members.hasAny([request.auth.uid]) || isAdmin());
+      allow create: if isAuthenticated() && (get(/databases/$(database)/documents/studyGroups/$(groupId)).data.members.hasAny([request.auth.uid])) && request.resource.data.senderId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.senderId == request.auth.uid || isAdmin());
     }
 
     // Default deny
